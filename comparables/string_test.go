@@ -1,10 +1,14 @@
-package expect
+package comparables
 
-import "testing"
+import (
+	"testing"
+
+	"expect"
+)
 
 func TestStringComparable_CompareTo(t *testing.T) {
 	type args struct {
-		c Comparable
+		c expect.Comparable
 	}
 	var tests = []struct {
 		name string
@@ -25,7 +29,11 @@ func TestStringComparable_CompareTo(t *testing.T) {
 		}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.s.CompareTo(tt.args.c); got != tt.want {
+			got, err := tt.s.CompareTo(tt.args.c)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != tt.want {
 				t.Errorf("CompareTo() = %q, want %q", got, tt.want)
 			}
 		})
@@ -34,7 +42,7 @@ func TestStringComparable_CompareTo(t *testing.T) {
 
 func TestPrettyStringComparable_CompareTo(t *testing.T) {
 	type args struct {
-		c Comparable
+		c expect.Comparable
 	}
 	var tests = []struct {
 		name string
@@ -55,7 +63,11 @@ func TestPrettyStringComparable_CompareTo(t *testing.T) {
 		}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.s.CompareTo(tt.args.c); got != tt.want {
+			got, err := tt.s.CompareTo(tt.args.c)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != tt.want {
 				t.Errorf("CompareTo() = %q, want %q", got, tt.want)
 			}
 		})
