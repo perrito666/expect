@@ -14,21 +14,21 @@ type Comparable interface {
 	Load([]byte) Comparable
 }
 
-// CantCompare constructs a valid ErrCantCompare
+// CantCompare constructs a valid ErrCannotCompare
 func CantCompare(source, target string) error {
-	return &ErrCantCompare{
+	return &ErrCannotCompare{
 		Source: source,
 		Target: target,
 	}
 }
 
-// ErrCantCompare should be raised when Source is passed Target to compare itself to.
-type ErrCantCompare struct {
+// ErrCannotCompare should be raised when Source is passed Target to compare itself to.
+type ErrCannotCompare struct {
 	Source string
 	Target string
 }
 
-func (err *ErrCantCompare) Error() string {
+func (err *ErrCannotCompare) Error() string {
 	return fmt.Sprintf("%q does not know how to compare itself to %q", err.Source, err.Target)
 }
 
