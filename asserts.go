@@ -3,6 +3,7 @@ package expect
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -13,8 +14,6 @@ import (
 	"sync"
 	"testing"
 )
-
-const snapShotDir = "__expectations"
 
 type Args struct {
 	shouldUpdate  bool
@@ -112,24 +111,98 @@ func (f *fileContents) load(fileName string) error {
 		return fmt.Errorf("malformed expectation, cannot find separator")
 	}
 	f.header = &fileHeader{}
-	f.header.load(fContent[:sep])
+	if err := f.header.load(fContent[:sep]); err != nil {
+		return fmt.Errorf("loading header: %w", err)
+	}
 	f.body = fContent[sep+len(headerSep):]
 	return nil
 }
-func AsSnapshot(t *testing.T, name string, comparable Comparable) {
-	asSnapshot(t, name, comparable, false)
+
+// FromSnapshot will fail if the stored information is not equal (in a non-agnostic comparison) to the passed comparable.
+func FromSnapshot(t *testing.T, name string, comparable Comparable) {
+	doCompareAndEvaluateResult(t, name, comparable, false)
 }
 
-func AsOSDependentSnapshot(t *testing.T, name string, comparable Comparable) {
-	asSnapshot(t, name, comparable, true)
+// FromOSDependentSnapshot will fail if the stored information is not equal (in a non-agnostic comparison) to the passed
+// comparable but only if the OS of both matches, this should prevent weird side effect of snapshotting in different
+// machines.
+func FromOSDependentSnapshot(t *testing.T, name string, comparable Comparable) {
+	doCompareAndEvaluateResult(t, name, comparable, true)
 }
 
-func asSnapshot(t *testing.T, name string, comparable Comparable, limitOS bool) {
+// doCompareAndEvaluateResult does the actual snapshot running and decides if and how to fail according to results.
+func doCompareAndEvaluateResult(t *testing.T, name string, comparable Comparable, limitOs bool) {
+	config, err := ReadConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := fromSnapshot(name, comparable, limitOs, config); err != nil {
+		if errors.Is(err, &ErrTestErrored{}) {
+			t.Fatal(errors.Unwrap(err))
+			return
+		}
+		if errors.Is(err, &ErrTestFailed{}) {
+			t.Logf("found a difference between expectation and result on test %q, difference follows:", name)
+			t.Log(err)
+			t.FailNow()
+			return
+		}
+		panic(err)
+	}
+}
+
+// ErrTestFailed should be returned when a comparison test fails.
+type ErrTestFailed struct {
+	failure string
+}
+
+// Error implements errors for ErrTestFailed
+func (e *ErrTestFailed) Error() string {
+	return e.failure
+}
+
+// Is implements the (for some unspoken reason) tacit errors.Is interface for ErrTestFailed
+func (e *ErrTestFailed) Is(err error) bool {
+	_, is := err.(*ErrTestFailed)
+	return is
+}
+
+// ErrTestErrored should be returned when one of the preconditions or setups of the tests errored
+type ErrTestErrored struct {
+	err error
+}
+
+// Error implements errors for ErrTestErrored
+func (e *ErrTestErrored) Error() string {
+	return fmt.Sprintf("test errored: %s", e.err)
+}
+
+// Is implements the (for some unspoken reason) tacit errors.Is interface for ErrTestErrored
+func (e *ErrTestErrored) Is(err error) bool {
+	_, is := err.(*ErrTestErrored)
+	return is
+}
+
+// Unwrap  implements the (for some unspoken reason) tacit errors.Unwrap() interface for ErrTestErrored
+func (e *ErrTestErrored) Unwrap() error {
+	return e.err
+}
+
+// fromSnapshot loads and compares the snapshot,  it is separated form the logic that handles testing.T to ease
+// unit testing.
+func fromSnapshot(name string, comparable Comparable, limitOS bool, config *Config) error {
 	pathName := url.PathEscape(name)
 	if err := registerTestName(pathName); err == nil {
-		t.Error(fmt.Errorf("setting new expectation: %w", err))
+		return &ErrTestErrored{
+			err: fmt.Errorf("setting new expectation: %w", err),
+		}
+
 	}
-	snapshotFilePath := filepath.Join(snapShotDir, pathName)
+
+	// get the test file name just in case snapshot dir needs it
+	_, fileName, _, _ := runtime.Caller(0)
+	packageSnapshotDir := config.SnapshotDir(fileName)
+	snapshotFilePath := filepath.Join(packageSnapshotDir, pathName)
 	if currentRunArgs != nil && currentRunArgs.shouldUpdate {
 		fc := fileContents{
 			header: &fileHeader{OS: runtime.GOOS, LimitToOS: limitOS},
@@ -140,37 +213,53 @@ func asSnapshot(t *testing.T, name string, comparable Comparable, limitOS bool) 
 		}
 
 		// we just updated the snapshot, makes no sense to compare
-		return
+		return nil
 	}
 	f, err := os.Open(snapshotFilePath)
 	if err != nil {
-		t.Fatal(fmt.Errorf("opening snapshot file for test %q: %w", name, err))
+		return &ErrTestErrored{
+			err: fmt.Errorf("opening snapshot file for test %q: %w", name, err),
+		}
 	}
 	defer f.Close()
 	snapshotContents, err := io.ReadAll(f)
 	if err != nil {
-		t.Fatal(fmt.Errorf("reading snapshot for test %q: %w", name, err))
+		return &ErrTestErrored{
+			err: fmt.Errorf("reading snapshot for test %q: %w", name, err),
+		}
 	}
 	expectation := comparable.Load(snapshotContents)
 	diff, err := expectation.CompareTo(comparable)
 	if err != nil {
-		t.Fatal(fmt.Errorf("comparing expectation to result: %w", err))
+		return &ErrTestErrored{
+			err: fmt.Errorf("comparing expectation to result: %w", err),
+		}
 	}
-	if diff == "" {
-		return
+	if diff != "" {
+		return &ErrTestFailed{failure: diff}
 	}
-	t.Logf("found a difference between expectation and result on test %q, difference follows:", name)
-	t.Log(diff)
-	t.FailNow()
+	return nil
 }
 
+// Cleanup should be called in TestMain AFTER m.Run() to remove stale snapshots
 func Cleanup() error {
+	config, err := ReadConfig()
+	if err != nil {
+		return fmt.Errorf("cleaning up stale snapshots: %w", err)
+	}
+	return cleanup(config)
+}
+
+func cleanup(config *Config) error {
 	registerNameMutex.Lock()
 	defer registerNameMutex.Unlock()
 	if currentRunArgs == nil || (currentRunArgs != nil && !currentRunArgs.shouldCleanup) {
 		return nil
 	}
-	dirContents, err := os.ReadDir(snapShotDir)
+
+	_, fileName, _, _ := runtime.Caller(0)
+	packageSnapshotDir := config.SnapshotDir(fileName)
+	dirContents, err := os.ReadDir(packageSnapshotDir)
 	if err != nil {
 		return fmt.Errorf("reading snapshot directory contents: %w", err)
 	}
@@ -178,7 +267,9 @@ func Cleanup() error {
 	for _, entry := range dirContents {
 		p := filepath.Join(snapShotDir, entry.Name())
 		fc := &fileContents{}
-		fc.load(p)
+		if err := fc.load(p); err != nil {
+			return fmt.Errorf("loading file contents: %w", err)
+		}
 		if !fc.header.considerForCleanup() {
 			continue
 		}
