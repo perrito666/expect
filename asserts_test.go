@@ -1,8 +1,10 @@
 package expect
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"expect/snapshots"
@@ -92,15 +94,25 @@ func Test_fromSnapshot(t *testing.T) {
 }
 
 func Test_cleanup(t *testing.T) {
+	var deletableOS string
+	// this accounts for the most common and ones I can try, if you have another and want to run test
+	// add a case. Here is the full list https://github.com/golang/go/blob/master/src/go/build/syslist.go
+	switch runtime.GOOS {
+	case "windows", "darwin":
+		deletableOS = "linux"
+	default:
+		deletableOS = "windows"
+	}
 	type args struct {
 		config *Config
 	}
 	tests := []struct {
-		name         string
-		deletables   []string
-		conservables []string
-		args         args
-		wantErr      bool
+		name           string
+		deletables     []string
+		conservables   []string
+		os_spare_ables []string
+		args           args
+		wantErr        bool
 	}{
 		{
 			name:         "cleanup_snapshot_folder",
@@ -116,12 +128,33 @@ func Test_cleanup(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			currentRunArgs = &Args{shouldUpdate: true, shouldCleanup: true}
 			for _, dc := range append(tt.deletables, tt.conservables...) {
 				fd, err := os.OpenFile(filepath.Join(tt.args.config.SnapShotDir, dc),
 					os.O_CREATE|os.O_TRUNC, snapshotFilePerm)
 				if err != nil {
 					t.Fatal(err)
 				}
+				fd.WriteString(`{
+  "os": "windows",
+  "limit_to_os": false
+}
+
+Hello World`)
+				fd.Close()
+			}
+			for _, dc := range tt.os_spare_ables {
+				fd, err := os.OpenFile(filepath.Join(tt.args.config.SnapShotDir, dc),
+					os.O_CREATE|os.O_TRUNC, snapshotFilePerm)
+				if err != nil {
+					t.Fatal(err)
+				}
+				fd.WriteString(fmt.Sprintf(`{
+  "os": "%s",
+  "limit_to_os": true
+}
+
+Hello World`, deletableOS))
 				fd.Close()
 			}
 			registeredName = map[string]bool{}
@@ -131,7 +164,7 @@ func Test_cleanup(t *testing.T) {
 			if err := cleanup(tt.args.config); (err != nil) != tt.wantErr {
 				t.Errorf("cleanup() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			for _, c := range tt.conservables {
+			for _, c := range append(tt.conservables, tt.os_spare_ables...) {
 				fPath := filepath.Join(tt.args.config.SnapShotDir, c)
 				_, err := os.Stat(fPath)
 				if err != nil {
@@ -147,6 +180,7 @@ func Test_cleanup(t *testing.T) {
 					t.FailNow()
 				}
 			}
+			currentRunArgs = &Args{shouldUpdate: false, shouldCleanup: false}
 		})
 	}
 }
