@@ -1,27 +1,26 @@
-package comparables
+package comparabletypes
 
 import (
 	"encoding/json"
 	"fmt"
 
+	"expect/snapshots"
 	"github.com/nsf/jsondiff"
-
-	"expect"
 )
 
-var _ expect.Comparable = (*JSON)(nil)
+var _ snapshots.Comparable = (*JSON)(nil)
 
 type JSON struct {
 	rawJSON json.RawMessage
 }
 
-func (j JSON) CompareTo(c expect.Comparable) (string, error) {
+func (j *JSON) CompareTo(c snapshots.Comparable) (string, error) {
 	opts := jsondiff.DefaultConsoleOptions()
 
 	// TODO: Take string here too, we should be able to handle it most of the time
-	newJSON, isJSON := c.(JSON)
+	newJSON, isJSON := c.(*JSON)
 	if !isJSON {
-		return "", expect.CantCompare(fmt.Sprintf("%T", j), fmt.Sprintf("%T", c))
+		return "", snapshots.CantCompare(fmt.Sprintf("%T", j), fmt.Sprintf("%T", c))
 	}
 
 	jsonDifference, explanation := jsondiff.Compare(j.rawJSON, newJSON.rawJSON, &opts)
@@ -33,34 +32,40 @@ func (j JSON) CompareTo(c expect.Comparable) (string, error) {
 	case jsondiff.SupersetMatch, jsondiff.NoMatch:
 		return explanation, nil
 	case jsondiff.FirstArgIsInvalidJson:
-		return "", expect.InvalidSource(fmt.Sprintf("%T", j), j.Kind())
+		return "", snapshots.InvalidSource(fmt.Sprintf("%T", j), j.Kind())
 	case jsondiff.SecondArgIsInvalidJson:
-		return "", expect.InvalidTarget(fmt.Sprintf("%T", c), c.Kind())
+		return "", snapshots.InvalidTarget(fmt.Sprintf("%T", c), c.Kind())
 	case jsondiff.BothArgsAreInvalidJson:
 		if len(j.rawJSON) == len(newJSON.rawJSON) && len(j.rawJSON) == 0 {
 			// empty therefore equal
 			return "", nil
 		}
-		return "", expect.BothPartsInvalid(fmt.Sprintf("%T", j), fmt.Sprintf("%T", c), j.Kind())
+		return "", snapshots.BothPartsInvalid(fmt.Sprintf("%T", j), fmt.Sprintf("%T", c), j.Kind())
 
 	}
 	return explanation, nil
 }
 
-func (j JSON) String() string {
+func (j *JSON) String() string {
 	return string(j.rawJSON)
 }
 
-const KindJSON expect.Kind = "json"
+const KindJSON snapshots.Kind = "json"
 
-func (j JSON) Kind() expect.Kind {
+func (j *JSON) Kind() snapshots.Kind {
 	return KindJSON
 }
 
-func (j JSON) Dump() []byte {
+func (j *JSON) Dump() []byte {
 	return j.rawJSON
 }
 
-func (j JSON) Load(rawJSON []byte) expect.Comparable {
-	return JSON{rawJSON: rawJSON}
+func (j *JSON) Load(rawJSON []byte) snapshots.Comparable {
+	return &JSON{rawJSON: rawJSON}
+}
+
+func (j *JSON) Replace(map[string]string) {}
+
+func (j *JSON) Extension() string {
+	return "json"
 }

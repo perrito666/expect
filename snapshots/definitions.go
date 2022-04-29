@@ -1,8 +1,8 @@
-package expect
+package snapshots
 
 import "fmt"
 
-// Kind is used to represent a kind of comparable, ideally is used to know if two Comparables
+// Kind is used to represent a kind of comparabletypes, ideally is used to know if two Comparables
 // can compare themselves with custom method, or they need string comparison
 type Kind string
 
@@ -12,6 +12,8 @@ type Comparable interface {
 	Kind() Kind
 	Dump() []byte
 	Load([]byte) Comparable
+	Replace(map[string]string)
+	Extension() string
 }
 
 // CantCompare constructs a valid ErrCannotCompare

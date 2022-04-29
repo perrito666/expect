@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"expect/snapshots"
 )
 
 // Grouping represents a possible criteria to group the snapshot files
@@ -22,15 +24,19 @@ const (
 type Config struct {
 	Grouping    Grouping `json:"grouping,omitempty"`
 	SnapShotDir string   `json:"snapshot_dir,omitempty"`
-	// Replacers holds possible kw replacement as map[comparable.Kind]map[from]to
-	Replacers map[Kind]map[string]string `json:"replacers,omitempty"`
+	// Replacers holds possible kw replacement as map[comparabletypes.Kind]map[from]to
+	Replacers map[snapshots.Kind]map[string]string `json:"replacers,omitempty"`
 }
 
 const configFileName = "expectations.json"
 
 // ReadConfig will try to read a config file from cwd and return that or a sane default.
 func ReadConfig() (*Config, error) {
-	wd, err := os.Getwd()
+	return readConfig(os.Getwd)
+}
+
+func readConfig(getcwd func() (string, error)) (*Config, error) {
+	wd, err := getcwd()
 	if err != nil {
 		// I have no clue why Getwd() would fail in this context
 		return nil, fmt.Errorf("determining test working directory: %w", err)
@@ -40,7 +46,7 @@ func ReadConfig() (*Config, error) {
 		return &Config{
 			Grouping:    "",
 			SnapShotDir: "",
-			Replacers:   map[Kind]map[string]string{},
+			Replacers:   map[snapshots.Kind]map[string]string{},
 		}, nil
 	}
 	fd, err := os.Open(cFilePath)
@@ -71,9 +77,10 @@ func (c *Config) SnapshotDir(fileName string) string {
 	if c.SnapShotDir != "" {
 		return c.SnapShotDir
 	}
-	// Remove . in case there is no . ... cthulu knows why
-	snapName := strings.TrimRight(fileName, "."+filepath.Ext(fileName))
+
 	if c.Grouping == groupByTestFile {
+		// Remove . in case there is no . ... cthulu knows why
+		snapName := strings.TrimRight(fileName, "."+filepath.Ext(fileName))
 		return fmt.Sprintf("%s.expectations", snapName)
 	}
 	return snapShotDir

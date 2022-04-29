@@ -1,30 +1,35 @@
-package comparables
+package comparabletypes
 
 import (
 	"testing"
 
-	"expect"
+	"expect/snapshots"
 )
+
+func newStringComparableFromLiteral(s string) *StringComparable {
+	c := StringComparable(s)
+	return &c
+}
 
 func TestStringComparable_CompareTo(t *testing.T) {
 	type args struct {
-		c expect.Comparable
+		c snapshots.Comparable
 	}
 	var tests = []struct {
 		name string
-		s    StringComparable
+		s    *StringComparable
 		args args
 		want string
 	}{{
 		name: "all equal",
-		s:    "Lorem ipsum dolor.",
-		args: args{c: StringComparable("Lorem ipsum dolor.")},
+		s:    newStringComparableFromLiteral("Lorem ipsum dolor."),
+		args: args{c: newStringComparableFromLiteral("Lorem ipsum dolor.")},
 		want: "",
 	},
 		{
 			name: "half different",
-			s:    "Lorem ipsum dolor.",
-			args: args{c: StringComparable("Lorem dolor sit amet.")},
+			s:    newStringComparableFromLiteral("Lorem ipsum dolor."),
+			args: args{c: newStringComparableFromLiteral("Lorem dolor sit amet.")},
 			want: "@@ -3,16 +3,19 @@\n rem \n-ipsum \n dolor\n+ sit amet\n .\n",
 		}}
 	for _, tt := range tests {
@@ -42,23 +47,23 @@ func TestStringComparable_CompareTo(t *testing.T) {
 
 func TestPrettyStringComparable_CompareTo(t *testing.T) {
 	type args struct {
-		c expect.Comparable
+		c snapshots.Comparable
 	}
 	var tests = []struct {
 		name string
-		s    PrettyStringComparable
+		s    *PrettyStringComparable
 		args args
 		want string
 	}{{
 		name: "all equal",
-		s:    PrettyStringComparable{"Lorem ipsum dolor."},
-		args: args{c: StringComparable("Lorem ipsum dolor.")},
+		s:    &PrettyStringComparable{"Lorem ipsum dolor."},
+		args: args{c: newStringComparableFromLiteral("Lorem ipsum dolor.")},
 		want: "",
 	},
 		{
 			name: "half different",
-			s:    PrettyStringComparable{"Lorem ipsum dolor."},
-			args: args{c: PrettyStringComparable{"Lorem dolor sit amet."}},
+			s:    &PrettyStringComparable{"Lorem ipsum dolor."},
+			args: args{c: &PrettyStringComparable{StringComparable("Lorem dolor sit amet.")}},
 			want: "Lorem \x1b[31mipsum \x1b[0mdolor\x1b[32m sit amet\x1b[0m.",
 		}}
 	for _, tt := range tests {

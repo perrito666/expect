@@ -1,11 +1,11 @@
-package comparables
+package comparabletypes
 
 import (
 	"encoding/json"
 	"fmt"
 	"testing"
 
-	"expect"
+	"expect/snapshots"
 )
 
 func TestJSON_CompareTo(t *testing.T) {
@@ -13,7 +13,7 @@ func TestJSON_CompareTo(t *testing.T) {
 		rawJSON json.RawMessage
 	}
 	type args struct {
-		c expect.Comparable
+		c snapshots.Comparable
 	}
 	tests := []struct {
 		name    string
@@ -35,7 +35,7 @@ func TestJSON_CompareTo(t *testing.T) {
     ]
   }
 }}`)},
-			args: args{c: JSON{rawJSON: []byte(`{"menu": {
+			args: args{c: &JSON{rawJSON: []byte(`{"menu": {
   "id": "file",
   "value": "File",
   "popup": {
@@ -61,7 +61,7 @@ func TestJSON_CompareTo(t *testing.T) {
     ]
   }
 }}`)},
-			args: args{c: JSON{rawJSON: []byte(`{"menu": {
+			args: args{c: &JSON{rawJSON: []byte(`{"menu": {
   "id": "file",
   "value": "File",
   "popup": {

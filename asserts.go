@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"expect/snapshots"
 )
 
 type Args struct {
@@ -73,7 +74,7 @@ type fileHeader struct {
 }
 
 func (f *fileHeader) dump() ([]byte, error) {
-	return json.Marshal(f)
+	return json.MarshalIndent(f, "", "  ")
 }
 
 func (f *fileHeader) load(h []byte) error {
@@ -96,9 +97,26 @@ func (f *fileContents) dump(fileName string) error {
 	if err != nil {
 		return fmt.Errorf("dumping header %w", err)
 	}
+	abs, err := filepath.Abs(fileName)
+	if err != nil {
+		return fmt.Errorf("getting abs path for dump file %w", err)
+	}
+	fd := filepath.Dir(abs)
+	err = os.MkdirAll(fd, snapshotFilePerm)
+	if err != nil {
+		return fmt.Errorf("creating snapshot folders %w", err)
+	}
 	return os.WriteFile(fileName,
 		append(h, append(headerSep, f.body...)...),
 		snapshotFilePerm)
+}
+
+func readFileContents(fileName string) (*fileContents, error) {
+	fc := &fileContents{}
+	if err := fc.load(fileName); err != nil {
+		return nil, err
+	}
+	return fc, nil
 }
 
 func (f *fileContents) load(fileName string) error {
@@ -118,20 +136,20 @@ func (f *fileContents) load(fileName string) error {
 	return nil
 }
 
-// FromSnapshot will fail if the stored information is not equal (in a non-agnostic comparison) to the passed comparable.
-func FromSnapshot(t *testing.T, name string, comparable Comparable) {
+// FromSnapshot will fail if the stored information is not equal (in a non-agnostic comparison) to the passed comparabletypes.
+func FromSnapshot(t *testing.T, name string, comparable snapshots.Comparable) {
 	doCompareAndEvaluateResult(t, name, comparable, false)
 }
 
 // FromOSDependentSnapshot will fail if the stored information is not equal (in a non-agnostic comparison) to the passed
-// comparable but only if the OS of both matches, this should prevent weird side effect of snapshotting in different
+// comparabletypes but only if the OS of both matches, this should prevent weird side effect of snapshotting in different
 // machines.
-func FromOSDependentSnapshot(t *testing.T, name string, comparable Comparable) {
+func FromOSDependentSnapshot(t *testing.T, name string, comparable snapshots.Comparable) {
 	doCompareAndEvaluateResult(t, name, comparable, true)
 }
 
 // doCompareAndEvaluateResult does the actual snapshot running and decides if and how to fail according to results.
-func doCompareAndEvaluateResult(t *testing.T, name string, comparable Comparable, limitOs bool) {
+func doCompareAndEvaluateResult(t *testing.T, name string, comparable snapshots.Comparable, limitOs bool) {
 	config, err := ReadConfig()
 	if err != nil {
 		t.Fatal(err)
@@ -190,19 +208,22 @@ func (e *ErrTestErrored) Unwrap() error {
 
 // fromSnapshot loads and compares the snapshot,  it is separated form the logic that handles testing.T to ease
 // unit testing.
-func fromSnapshot(name string, comparable Comparable, limitOS bool, config *Config) error {
+func fromSnapshot(name string, comparable snapshots.Comparable, limitOS bool, config *Config) error {
 	pathName := url.PathEscape(name)
-	if err := registerTestName(pathName); err == nil {
+	if err := registerTestName(pathName); err != nil {
 		return &ErrTestErrored{
 			err: fmt.Errorf("setting new expectation: %w", err),
 		}
-
 	}
 
 	// get the test file name just in case snapshot dir needs it
 	_, fileName, _, _ := runtime.Caller(0)
 	packageSnapshotDir := config.SnapshotDir(fileName)
 	snapshotFilePath := filepath.Join(packageSnapshotDir, pathName)
+	if ext := comparable.Extension(); ext != "" {
+		snapshotFilePath = fmt.Sprintf("%s.%s", snapshotFilePath, ext)
+	}
+
 	if currentRunArgs != nil && currentRunArgs.shouldUpdate {
 		fc := fileContents{
 			header: &fileHeader{OS: runtime.GOOS, LimitToOS: limitOS},
@@ -215,20 +236,13 @@ func fromSnapshot(name string, comparable Comparable, limitOS bool, config *Conf
 		// we just updated the snapshot, makes no sense to compare
 		return nil
 	}
-	f, err := os.Open(snapshotFilePath)
+	fc, err := readFileContents(snapshotFilePath)
 	if err != nil {
 		return &ErrTestErrored{
-			err: fmt.Errorf("opening snapshot file for test %q: %w", name, err),
+			err: fmt.Errorf("loading expectatations file: %w", err),
 		}
 	}
-	defer f.Close()
-	snapshotContents, err := io.ReadAll(f)
-	if err != nil {
-		return &ErrTestErrored{
-			err: fmt.Errorf("reading snapshot for test %q: %w", name, err),
-		}
-	}
-	expectation := comparable.Load(snapshotContents)
+	expectation := comparable.Load(fc.body)
 	diff, err := expectation.CompareTo(comparable)
 	if err != nil {
 		return &ErrTestErrored{
@@ -265,9 +279,9 @@ func cleanup(config *Config) error {
 	}
 	var deletable []string
 	for _, entry := range dirContents {
-		p := filepath.Join(snapShotDir, entry.Name())
-		fc := &fileContents{}
-		if err := fc.load(p); err != nil {
+		p := filepath.Join(packageSnapshotDir, entry.Name())
+		fc, err := readFileContents(p)
+		if err != nil {
 			return fmt.Errorf("loading file contents: %w", err)
 		}
 		if !fc.header.considerForCleanup() {
