@@ -107,7 +107,7 @@ func (f *fileContents) dump(fileName string) error {
 		return fmt.Errorf("creating snapshot folders %w", err)
 	}
 	return os.WriteFile(fileName,
-		append(h, append(headerSep, f.body...)...),
+		append(h, append([]byte("\n"), f.body...)...),
 		snapshotFilePerm)
 }
 
@@ -161,6 +161,9 @@ func doCompareAndEvaluateResult(t *testing.T, name string, comparable snapshots.
 		}
 		if errors.Is(err, &ErrTestFailed{}) {
 			t.Logf("found a difference between expectation and result on test %q, difference follows:", name)
+			/*for _, line := range strings.Split(err.Error(), "\n"){
+				t.Log(line)
+			}*/
 			t.Log(err)
 			t.FailNow()
 			return

@@ -54,6 +54,13 @@ func (s *StringComparable) Load(rawS []byte) snapshots.Comparable {
 	sc := StringComparable(rawS)
 	return &sc
 }
+
+func (s *PrettyStringComparable) Load(rawS []byte) snapshots.Comparable {
+	sc := StringComparable(rawS)
+	psc := PrettyStringComparable{sc}
+	return &psc
+}
+
 func (s *StringComparable) Replace(r map[string]string) {
 	repl := make([]string, 0, len(r)*2)
 	for k, v := range r {
