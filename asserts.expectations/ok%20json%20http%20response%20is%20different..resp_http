@@ -1,0 +1,31 @@
+{
+  "os": "windows",
+  "limit_to_os": false
+}
+
+{
+  "Headers": {
+    "content-length": [
+      "49"
+    ],
+    "content-type": [
+      "application/json",
+      "text/plain; charset=utf-8"
+    ],
+    "date": [
+      "Mon, 02 May 2022 22:19:45 GMT"
+    ],
+    "foo": [
+      "bar",
+      "baz"
+    ]
+  },
+  "Status": 202
+}
+
+{
+  "hello": [
+    "world!!",
+    "universe"
+  ]
+}

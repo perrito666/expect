@@ -23,11 +23,11 @@ type Response struct {
 }
 
 type dumpResponse struct {
-	headers map[string][]string `json:"headers"`
-	status  int                 `json:"status"`
+	Headers map[string][]string `json:"Headers"`
+	Status  int                 `json:"Status"`
 }
 
-func NewResponse(r http.Response, pretty bool) (snapshots.Comparable, error) {
+func NewResponse(r *http.Response, pretty bool) (snapshots.Comparable, error) {
 	rq := Response{
 		pretty: pretty,
 		status: r.StatusCode,
@@ -83,13 +83,13 @@ func (r *Response) compareToString(c snapshots.Comparable) (string, error) {
 
 func (r *Response) compareToOtherResponse(cr *Response) (string, error) {
 	var result strings.Builder
-	// Compare status
+	// Compare Status
 	if r.status != cr.status {
 		result.WriteString(fmt.Sprintf("Status: expected %d but got %d\n", r.status, cr.status))
 	}
-	// Compare headers
+	// Compare Headers
 	if len(r.headerKeys) != len(cr.headerKeys) {
-		result.WriteString(fmt.Sprintf("Headers: expected %d headers but got %d\n", len(r.headerKeys), len(cr.headerKeys)))
+		result.WriteString(fmt.Sprintf("Headers: expected %d Headers but got %d\n", len(r.headerKeys), len(cr.headerKeys)))
 	}
 	for _, k := range r.headerKeys {
 		if v, ok := cr.headers[k]; !ok {
@@ -115,7 +115,7 @@ func (r *Response) compareToOtherResponse(cr *Response) (string, error) {
 	ect := r.contentType()
 	ct := cr.contentType()
 	handler, hasHandler := r.handlers[ect]
-	if ect != ct || ect == "" || hasHandler {
+	if ect != ct || ect == "" || !hasHandler {
 		if !reflect.DeepEqual(r.body, cr.body) {
 			result.WriteString("BODY: bodies are different, please inspect them\n")
 		}
@@ -157,14 +157,14 @@ func (r *Response) Kind() snapshots.Kind {
 
 func (r *Response) Dump() []byte {
 	dumpable := dumpResponse{
-		headers: r.headers,
-		status:  r.status,
+		Headers: r.headers,
+		Status:  r.status,
 	}
-	m, err := json.Marshal(&dumpable)
+	m, err := json.MarshalIndent(&dumpable, "", "  ")
 	if err != nil {
 		panic(err)
 	}
-	return append(m, []byte("\n"+r.String())...)
+	return append(m, append([]byte(headerSep), r.body...)...)
 }
 
 const headerSep = "\n\n"
@@ -177,22 +177,24 @@ func (r *Response) Load(req []byte) snapshots.Comparable {
 	dumped := &dumpResponse{}
 	err := json.Unmarshal(req[:splitLine], dumped)
 	if err != nil {
-		panic(fmt.Errorf("unmarshaling headers: %w", err))
+		panic(fmt.Errorf("unmarshaling Headers: %w", err))
 	}
-	headerKeys := make([]string, 0, len(dumped.headers))
-	for k := range dumped.headers {
+	headerKeys := make([]string, 0, len(dumped.Headers))
+	for k := range dumped.Headers {
 		headerKeys = append(headerKeys, k)
 	}
 	sort.Strings(headerKeys)
 	for _, k := range headerKeys {
-		sort.Strings(dumped.headers[k])
+		sort.Strings(dumped.Headers[k])
 	}
 	newR := Response{
 		headerKeys: headerKeys,
-		status:     dumped.status,
-		headers:    dumped.headers,
+		status:     dumped.Status,
+		headers:    dumped.Headers,
 		body:       req[splitLine+len(headerSep):],
 	}
+	// we want handler parity, plus user originally will modify r
+	newR.handlers = r.handlers
 	return &newR
 }
 

@@ -108,10 +108,14 @@ log.Fatalln(err)
 }
 c := comparabletypes.HTTPResponse(resp)
 // This is built-in but is a nice sample, you can override the built ins.
-c.RegisterHandler("application/json", comparabletypes.JSON)
+c.RegisterHandler("application/json", comparabletypes.NewJSONFromString)
 expect.FromSnapshot(t, "a request to perrito", &c)
 }
 ```
+
+A resulting output for a failure of a json response would be (notice also differences in status and headers)
+
+![A sample http response difference](media/http_response_diff.jpg)
 
 #### Examples
 

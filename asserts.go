@@ -107,7 +107,7 @@ func (f *fileContents) dump(fileName string) error {
 		return fmt.Errorf("creating snapshot folders %w", err)
 	}
 	return os.WriteFile(fileName,
-		append(h, append([]byte("\n"), f.body...)...),
+		append(h, append(headerSep, f.body...)...),
 		snapshotFilePerm)
 }
 
