@@ -11,11 +11,6 @@ import (
 	"expect/snapshots/comparabletypes"
 )
 
-func newStringComparableFromLiteral(s string) *comparabletypes.StringComparable {
-	c := comparabletypes.StringComparable(s)
-	return &c
-}
-
 func Test_fromSnapshot(t *testing.T) {
 	type args struct {
 		name       string
@@ -33,7 +28,7 @@ func Test_fromSnapshot(t *testing.T) {
 			name: "regular_compare",
 			args: args{
 				name:       "test_from_snapshot_01",
-				comparable: newStringComparableFromLiteral("Hello World"),
+				comparable: comparabletypes.NewStringComparable("Hello World"),
 				limitOS:    false,
 				config: &Config{
 					Grouping:    groupByTestFile,
@@ -47,7 +42,7 @@ func Test_fromSnapshot(t *testing.T) {
 			name: "regular_compare_repeated_fails",
 			args: args{
 				name:       "test_from_snapshot_01",
-				comparable: newStringComparableFromLiteral("Hello World"),
+				comparable: comparabletypes.NewStringComparable("Hello World"),
 				limitOS:    false,
 				config: &Config{
 					Grouping:    groupByTestFile,
@@ -61,7 +56,7 @@ func Test_fromSnapshot(t *testing.T) {
 			name: "regular_compare_group_by_test_file",
 			args: args{
 				name:       "test_from_snapshot_02",
-				comparable: newStringComparableFromLiteral("Hello World"),
+				comparable: comparabletypes.NewStringComparable("Hello World"),
 				limitOS:    false,
 				config: &Config{
 					Grouping:  groupByTestFile,
@@ -74,7 +69,7 @@ func Test_fromSnapshot(t *testing.T) {
 			name: "regular_compare_group_by_package",
 			args: args{
 				name:       "test_from_snapshot_03",
-				comparable: newStringComparableFromLiteral("Hello World"),
+				comparable: comparabletypes.NewStringComparable("Hello World"),
 				limitOS:    false,
 				config: &Config{
 					Grouping:  groupByPackage,
@@ -107,12 +102,12 @@ func Test_cleanup(t *testing.T) {
 		config *Config
 	}
 	tests := []struct {
-		name           string
-		deletables     []string
-		conservables   []string
-		os_spare_ables []string
-		args           args
-		wantErr        bool
+		name         string
+		deletables   []string
+		conservables []string
+		osSpareAbles []string
+		args         args
+		wantErr      bool
 	}{
 		{
 			name:         "cleanup_snapshot_folder",
@@ -143,7 +138,7 @@ func Test_cleanup(t *testing.T) {
 Hello World`)
 				fd.Close()
 			}
-			for _, dc := range tt.os_spare_ables {
+			for _, dc := range tt.osSpareAbles {
 				fd, err := os.OpenFile(filepath.Join(tt.args.config.SnapShotDir, dc),
 					os.O_CREATE|os.O_TRUNC, snapshotFilePerm)
 				if err != nil {
@@ -164,7 +159,7 @@ Hello World`, deletableOS))
 			if err := cleanup(tt.args.config); (err != nil) != tt.wantErr {
 				t.Errorf("cleanup() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			for _, c := range append(tt.conservables, tt.os_spare_ables...) {
+			for _, c := range append(tt.conservables, tt.osSpareAbles...) {
 				fPath := filepath.Join(tt.args.config.SnapShotDir, c)
 				_, err := os.Stat(fPath)
 				if err != nil {

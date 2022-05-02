@@ -14,6 +14,11 @@ type JSON struct {
 	rawJSON json.RawMessage
 }
 
+func NewJSONFromString(s string) snapshots.Comparable {
+	j := JSON{rawJSON: []byte(s)}
+	return &j
+}
+
 func (j *JSON) CompareTo(c snapshots.Comparable) (string, error) {
 	opts := jsondiff.DefaultConsoleOptions()
 

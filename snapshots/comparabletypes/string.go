@@ -14,6 +14,18 @@ type PrettyStringComparable struct {
 	StringComparable
 }
 
+// NewStringComparable constructs a StringComparable from a string.
+func NewStringComparable(s string) snapshots.Comparable {
+	sc := StringComparable(s)
+	return &sc
+}
+
+// NewPrettyStringComparable constructs a PrettyStringComparable from a string.
+func NewPrettyStringComparable(s string) snapshots.Comparable {
+	sc := StringComparable(s)
+	return &PrettyStringComparable{sc}
+}
+
 func (s *StringComparable) CompareTo(c snapshots.Comparable) (string, error) {
 	return s.compareTo(c, false)
 }

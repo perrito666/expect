@@ -246,6 +246,11 @@ func fromSnapshot(name string, comparable snapshots.Comparable, limitOS bool, co
 		}
 	}
 	expectation := comparable.Load(fc.body)
+	// time to replace, comparable will know how to.
+	if replaceable, ok := config.Replacers[expectation.Kind()]; ok {
+		expectation.Replace(replaceable)
+		comparable.Replace(replaceable)
+	}
 	diff, err := expectation.CompareTo(comparable)
 	if err != nil {
 		return &ErrTestErrored{

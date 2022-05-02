@@ -23,13 +23,13 @@ func TestStringComparable_CompareTo(t *testing.T) {
 	}{{
 		name: "all equal",
 		s:    newStringComparableFromLiteral("Lorem ipsum dolor."),
-		args: args{c: newStringComparableFromLiteral("Lorem ipsum dolor.")},
+		args: args{c: NewStringComparable("Lorem ipsum dolor.")},
 		want: "",
 	},
 		{
 			name: "half different",
 			s:    newStringComparableFromLiteral("Lorem ipsum dolor."),
-			args: args{c: newStringComparableFromLiteral("Lorem dolor sit amet.")},
+			args: args{c: NewStringComparable("Lorem dolor sit amet.")},
 			want: "@@ -3,16 +3,19 @@\n rem \n-ipsum \n dolor\n+ sit amet\n .\n",
 		}}
 	for _, tt := range tests {
@@ -57,7 +57,7 @@ func TestPrettyStringComparable_CompareTo(t *testing.T) {
 	}{{
 		name: "all equal",
 		s:    &PrettyStringComparable{"Lorem ipsum dolor."},
-		args: args{c: newStringComparableFromLiteral("Lorem ipsum dolor.")},
+		args: args{c: NewStringComparable("Lorem ipsum dolor.")},
 		want: "",
 	},
 		{
