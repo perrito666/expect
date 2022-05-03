@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"testing"
 
-	"expect/snapshots"
-	"expect/snapshots/comparabletypes"
+	"perri.to/expect/snapshots"
+	"perri.to/expect/snapshots/comparabletypes"
 )
 
 func Test_fromSnapshot(t *testing.T) {
@@ -156,7 +156,7 @@ Hello World`, deletableOS))
 			for _, c := range tt.conservables {
 				registeredName[c] = true
 			}
-			if err := cleanup(tt.args.config); (err != nil) != tt.wantErr {
+			if err := cleanup(tt.args.config, false); (err != nil) != tt.wantErr {
 				t.Errorf("cleanup() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			for _, c := range append(tt.conservables, tt.osSpareAbles...) {

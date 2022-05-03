@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"expect/snapshots"
 	"github.com/nsf/jsondiff"
+	"perri.to/expect/snapshots"
 )
 
 var _ snapshots.Comparable = (*JSON)(nil)

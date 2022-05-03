@@ -3,8 +3,8 @@ package comparabletypes
 import (
 	"strings"
 
-	"expect/snapshots"
 	"github.com/sergi/go-diff/diffmatchpatch"
+	"perri.to/expect/snapshots"
 )
 
 var _ snapshots.Comparable = (*StringComparable)(nil)

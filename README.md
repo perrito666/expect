@@ -47,11 +47,8 @@ For `-cleanup` to work you need to also add a call to `Cleanup()` in your `TestM
 
 ```go
 func TestMain(m *testing.M) {
-exitVal := m.Run()
-
+m.Run()
 expect.Cleanup()
-
-os.Exit(exitVal)
 }
 ```
 

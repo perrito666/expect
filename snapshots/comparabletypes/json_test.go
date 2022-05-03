@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"expect/snapshots"
+	"perri.to/expect/snapshots"
 )
 
 func TestJSON_CompareTo(t *testing.T) {

@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"testing"
 
-	"expect/snapshots"
-	"expect/snapshots/comparabletypes"
+	"perri.to/expect/snapshots"
+	"perri.to/expect/snapshots/comparabletypes"
 )
 
 func TestReadConfigNoFile(t *testing.T) {

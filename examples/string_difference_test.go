@@ -3,8 +3,8 @@ package examples
 import (
 	"testing"
 
-	"expect"
-	"expect/snapshots/comparabletypes"
+	"perri.to/expect"
+	"perri.to/expect/snapshots/comparabletypes"
 )
 
 func TestStringSimpleMoreTextFails(t *testing.T) {

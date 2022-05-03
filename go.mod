@@ -1,4 +1,4 @@
-module expect
+module perri.to/expect
 
 go 1.18
 

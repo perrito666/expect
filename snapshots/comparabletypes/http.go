@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"expect/snapshots"
+	"perri.to/expect/snapshots"
 )
 
 type Response struct {

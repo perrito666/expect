@@ -3,7 +3,7 @@ package comparabletypes
 import (
 	"testing"
 
-	"expect/snapshots"
+	"perri.to/expect/snapshots"
 )
 
 func newStringComparableFromLiteral(s string) *StringComparable {

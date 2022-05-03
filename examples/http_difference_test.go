@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"expect"
-	"expect/snapshots/comparabletypes"
+	"perri.to/expect"
+	"perri.to/expect/snapshots/comparabletypes"
 )
 
 func TestResponseFails(t *testing.T) {

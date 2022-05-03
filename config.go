@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"expect/snapshots"
+	"perri.to/expect/snapshots"
 )
 
 // Grouping represents a possible criteria to group the snapshot files

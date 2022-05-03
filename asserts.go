@@ -13,7 +13,7 @@ import (
 	"sync"
 	"testing"
 
-	"expect/snapshots"
+	"perri.to/expect/snapshots"
 )
 
 type Args struct {
@@ -269,13 +269,23 @@ func Cleanup() error {
 	if err != nil {
 		return fmt.Errorf("cleaning up stale snapshots: %w", err)
 	}
-	return cleanup(config)
+	return cleanup(config, false)
 }
 
-func cleanup(config *Config) error {
+// MustCleanup will do exactly as Cleanup but also fail if a cleanup was due and no flag was passed
+func MustCleanup() error {
+	config, err := ReadConfig()
+	if err != nil {
+		return fmt.Errorf("cleaning up stale snapshots: %w", err)
+	}
+	return cleanup(config, true)
+}
+
+func cleanup(config *Config, must bool) error {
 	registerNameMutex.Lock()
 	defer registerNameMutex.Unlock()
-	if currentRunArgs == nil || (currentRunArgs != nil && !currentRunArgs.shouldCleanup) {
+	shouldCleanup := currentRunArgs != nil && currentRunArgs.shouldCleanup
+	if !must && (currentRunArgs == nil || !shouldCleanup) {
 		return nil
 	}
 
@@ -299,6 +309,20 @@ func cleanup(config *Config) error {
 			continue
 		}
 		deletable = append(deletable, p)
+		if must && !shouldCleanup {
+
+			cleanName, err := url.PathUnescape(entry.Name())
+			if err != nil {
+				cleanName = entry.Name()
+			}
+			fmt.Printf("CLEANUP: There is a snapshot for expectation %q but the expectation no longer exist\n", cleanName)
+		}
+	}
+	if !shouldCleanup {
+		if must && len(deletable) > 0 {
+			return fmt.Errorf("we found %d expectation snapshots that need cleanup", len(deletable))
+		}
+		return nil
 	}
 	for i, d := range deletable {
 		if err := os.Remove(d); err != nil {
