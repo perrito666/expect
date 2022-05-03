@@ -2,10 +2,12 @@ package snapshots
 
 import "fmt"
 
-// Kind is used to represent a kind of comparabletypes, ideally is used to know if two Comparables
+// Kind is used to represent a kind of comparable types, ideally is used to know if two Comparables
 // can compare themselves with custom method, or they need string comparison
 type Kind string
 
+// Comparable represents a type that can be compared with another that fulfills the same interface
+// within reason. Mist types should implement a fallback to string compare.
 type Comparable interface {
 	CompareTo(Comparable) (string, error)
 	String() string
@@ -30,6 +32,7 @@ type ErrCannotCompare struct {
 	Target string
 }
 
+// Error implements error for ErrCannotCompare.
 func (err *ErrCannotCompare) Error() string {
 	return fmt.Sprintf("%q does not know how to compare itself to %q", err.Source, err.Target)
 }
@@ -60,21 +63,26 @@ func InvalidTarget(tgtType string, tgtKind Kind) error {
 	}
 }
 
+// ErrTargetInvalid should be returned when one of the comparables is not valid (meaning we really
+// do not know how to compare it)
 type ErrTargetInvalid struct {
 	Type string
 	Kind Kind
 }
 
+// Error implements error for ErrTargetInvalid.
 func (err *ErrTargetInvalid) Error() string {
 	return fmt.Sprintf("target of type %s is not a valid %s", err.Type, err.Kind)
 }
 
+// ErrBothInvalid should be returned when both comparables are invalid.
 type ErrBothInvalid struct {
 	Source string
 	Target string
 	Kind   Kind
 }
 
+// BothPartsInvalid returns an ErrBothInvalid instance.
 func BothPartsInvalid(source, target string, kind Kind) error {
 	return &ErrBothInvalid{
 		Source: source,
@@ -83,6 +91,7 @@ func BothPartsInvalid(source, target string, kind Kind) error {
 	}
 }
 
+// Error implements error for ErrBothInvalid.
 func (err *ErrBothInvalid) Error() string {
 	return fmt.Sprintf("neither source, of type %s nor targetm of type %s are valid %s",
 		err.Source, err.Target, err.Kind)

@@ -74,6 +74,7 @@ func (s *PrettyStringComparable) Load(rawS []byte) snapshots.Comparable {
 }
 
 func (s *StringComparable) Replace(r map[string]string) {
+	// TODO: Should this support regexps? how?
 	repl := make([]string, 0, len(r)*2)
 	for k, v := range r {
 		repl = append(repl, k, v)

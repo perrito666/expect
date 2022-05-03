@@ -52,6 +52,9 @@ expect.Cleanup()
 }
 ```
 
+You can alternatively use `expect.MustCleanup()` which will return an error (which you will need to handle) if a cleanup
+was in order but not requested.
+
 if the `-cleanup` flag was passed then that invocation will remove all not used snapshots, otherwise it will do nothing.
 
 #### The configuration
