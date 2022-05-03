@@ -12,6 +12,9 @@ import (
 	"perri.to/expect/snapshots"
 )
 
+var _ snapshots.Comparable = (*Response)(nil)
+
+// Response holds comparable information of a http response.
 type Response struct {
 	pretty     bool
 	handlers   map[string]func(string) snapshots.Comparable
@@ -27,7 +30,8 @@ type dumpResponse struct {
 	Status  int                 `json:"Status"`
 }
 
-func NewResponse(r *http.Response, pretty bool) (snapshots.Comparable, error) {
+// NewResponse returns a new instance of Response
+func NewResponse(r *http.Response, pretty bool) (*Response, error) {
 	rq := Response{
 		pretty: pretty,
 		status: r.StatusCode,
@@ -204,4 +208,9 @@ func (r *Response) Replace(m map[string]string) {
 
 func (r *Response) Extension() string {
 	return "resp_http"
+}
+
+// RegisterHandler will store in the response comparable a handler for a content-type
+func (r *Response) RegisterHandler(contentType string, h func(string) snapshots.Comparable) {
+	r.handlers[contentType] = h
 }

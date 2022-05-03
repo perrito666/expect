@@ -46,9 +46,17 @@ When running the tests (typically `go test .`) you can append, at the end, `--` 
 For `-cleanup` to work you need to also add a call to `Cleanup()` in your `TestMain` after `m.Run`
 
 ```go
+package foo
+
+import (
+  "testing"
+
+  "perri.to/expect"
+)
+
 func TestMain(m *testing.M) {
-m.Run()
-expect.Cleanup()
+  m.Run()
+  expect.Cleanup()
 }
 ```
 
@@ -84,11 +92,20 @@ Notice that this is all optional.
 There are two helpers provided to compare expectations.
 
 ```go
+package foo
+
+import (
+  "testing"
+
+  "perri.to/expect"
+  "perri.to/expect/snapshots/comparabletypes"
+)
+
 func TestSomething(t *testing.T) {
-var result string
-// ... Do something
-c := comparabletypes.StringComparable(result)
-expect.FromSnapshot(t, "a name for our snapshot", &c)
+  var result string
+  // ... Do something
+  c := comparabletypes.StringComparable(result)
+  expect.FromSnapshot(t, "a name for our snapshot", &c)
 }
 ```
 
@@ -101,15 +118,28 @@ This will yield error if:
 Now an example with a response.
 
 ```go
+package foo
+
+import (
+  "net/http"
+  "testing"
+
+  "perri.to/expect"
+  "perri.to/expect/snapshots/comparabletypes"
+)
+
 func TestSomethingNetworked(t *testing.T) {
-resp, err := http.Get("https://perri.to/random/json/endpoint") // no, it does not work
-if err != nil {
-log.Fatalln(err)
-}
-c := comparabletypes.HTTPResponse(resp)
-// This is built-in but is a nice sample, you can override the built ins.
-c.RegisterHandler("application/json", comparabletypes.NewJSONFromString)
-expect.FromSnapshot(t, "a request to perrito", &c)
+  resp, err := http.Get("https://perri.to/random/json/endpoint") // no, it does not work
+  if err != nil {
+    t.Fatal(err)
+  }
+  c, err := comparabletypes.NewResponse(resp, true)
+  if err != nil {
+    t.Fatal(err)
+  }
+  // This is built-in but is a nice sample, you can override the built ins.
+  c.RegisterHandler("application/json", comparabletypes.NewJSONFromString)
+  expect.FromSnapshot(t, "a request to perrito", &c)
 }
 ```
 
