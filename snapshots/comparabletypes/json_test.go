@@ -16,11 +16,12 @@ func TestJSON_CompareTo(t *testing.T) {
 		c snapshots.Comparable
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    string
-		wantErr bool
+		name     string
+		fields   fields
+		replacer map[string]string
+		args     args
+		want     string
+		wantErr  bool
 	}{
 		{
 			name: "equal",
@@ -38,6 +39,40 @@ func TestJSON_CompareTo(t *testing.T) {
 			args: args{c: &JSON{rawJSON: []byte(`{"menu": {
   "id": "file",
   "value": "File",
+  "popup": {
+    "menuitem": [
+      {"value": "New", "onclick": "CreateNewDoc()"},
+      {"value": "Open", "onclick": "OpenDoc()"},
+      {"value": "Close", "onclick": "CloseDoc()"}
+    ]
+  }
+}}`)}},
+			want: `""`,
+		},
+		{
+			name: "equal_replaced",
+			replacer: map[string]string{
+				"menu.top_replaceable":       "replaced",
+				"menu.deep.deep.replaceable": "also_replaced",
+			},
+			fields: fields{rawJSON: []byte(`{"menu": {
+  "id": "file",
+  "value": "File",
+  "top_replaceable": "value.orig",
+  "deep": {"deep": {"replaceable": "value1.orig"}},
+  "popup": {
+    "menuitem": [
+      {"value": "New", "onclick": "CreateNewDoc()"},
+      {"value": "Open", "onclick": "OpenDoc()"},
+      {"value": "Close", "onclick": "CloseDoc()"}
+    ]
+  }
+}}`)},
+			args: args{c: &JSON{rawJSON: []byte(`{"menu": {
+  "id": "file",
+  "value": "File",
+  "top_replaceable": "value_diff.orig",
+  "deep": {"deep": {"replaceable": "value1_diff.orig"}},
   "popup": {
     "menuitem": [
       {"value": "New", "onclick": "CreateNewDoc()"},
@@ -79,12 +114,17 @@ func TestJSON_CompareTo(t *testing.T) {
 			j := JSON{
 				rawJSON: tt.fields.rawJSON,
 			}
+			if tt.replacer != nil {
+				j.Replace(tt.replacer)
+				tt.args.c.Replace(tt.replacer)
+			}
 			got, err := j.CompareTo(tt.args.c)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CompareTo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if fmt.Sprintf("%q", got) != tt.want {
+				fmt.Println(got)
 				t.Errorf("CompareTo() got = \n%q\n, want \n%v", got, tt.want)
 			}
 

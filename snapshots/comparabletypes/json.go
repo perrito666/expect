@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/nsf/jsondiff"
+	"github.com/tidwall/sjson"
+
 	"perri.to/expect/snapshots"
 )
 
@@ -69,7 +71,16 @@ func (j *JSON) Load(rawJSON []byte) snapshots.Comparable {
 	return &JSON{rawJSON: rawJSON}
 }
 
-func (j *JSON) Replace(map[string]string) {}
+func (j *JSON) Replace(rs map[string]string) {
+	var err error
+	for k, v := range rs {
+		j.rawJSON, err = sjson.SetBytes(j.rawJSON, k, v)
+		if err != nil {
+			panic(err)
+		}
+
+	}
+}
 
 func (j *JSON) Extension() string {
 	return "json"

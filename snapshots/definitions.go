@@ -93,6 +93,6 @@ func BothPartsInvalid(source, target string, kind Kind) error {
 
 // Error implements error for ErrBothInvalid.
 func (err *ErrBothInvalid) Error() string {
-	return fmt.Sprintf("neither source, of type %s nor targetm of type %s are valid %s",
+	return fmt.Sprintf("neither source, of type %s nor target of type %s are valid %s",
 		err.Source, err.Target, err.Kind)
 }
