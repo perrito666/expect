@@ -23,7 +23,7 @@ We provide a set of supported types out of the box and the possibility to expand
 * String: with simple diff output on differences
 * String: with rich colored diff output on differences
 * JSON: with comparison of equivalence rather than equality
-* HTTP Response (WIP): with the ability to set specific comparators per ContentType
+* HTTP Response: with the ability to set specific comparators per ContentType
 * HTTP Request (WIP): with the ability to set specific comparators per ContentType
 
 Some aspects can be configuring by having a json file in your tests directory.
