@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"sync"
@@ -17,13 +19,17 @@ import (
 )
 
 type Args struct {
-	shouldUpdate  bool
-	shouldCleanup bool
+	shouldUpdate   bool
+	shouldCleanup  bool
+	runInArguments bool
 }
 
 var currentRunArgs *Args
 var registeredName map[string]bool
 var registerNameMutex sync.Mutex
+
+// ran should be set to true if we ran at least one test.
+var ran bool
 
 func init() {
 	var args Args
@@ -37,6 +43,8 @@ func init() {
 			args.shouldUpdate = true
 		case "-cleanup":
 			args.shouldCleanup = true
+		case "-run", "-test.run":
+			args.runInArguments = true
 		}
 	}
 	currentRunArgs = &args
@@ -61,6 +69,7 @@ func (e *ErrRepeated) Is(err error) bool {
 func registerTestName(testName string) error {
 	registerNameMutex.Lock()
 	defer registerNameMutex.Unlock()
+	ran = true // we ran at least once
 	if registeredName[testName] {
 		return &ErrRepeated{repeatedSnapshot: testName}
 	}
@@ -232,6 +241,16 @@ func fromSnapshot(name string, comparable snapshots.Comparable, limitOS bool, co
 			header: &fileHeader{OS: runtime.GOOS, LimitToOS: limitOS},
 			body:   comparable.Dump(),
 		}
+
+		fc1, err := readFileContents(snapshotFilePath)
+		if err == nil {
+			// This is not super accurate but in most cases will prevent to re-write the file just for the OS
+			if reflect.DeepEqual(fc1.body, fc.body) {
+				fmt.Println("snapshot is the same, not updating")
+				return nil
+			}
+		}
+
 		if err := fc.dump(snapshotFilePath); err != nil {
 			panic(err)
 		}
@@ -284,6 +303,16 @@ func MustCleanup() error {
 func cleanup(config *Config, must bool) error {
 	registerNameMutex.Lock()
 	defer registerNameMutex.Unlock()
+
+	if currentRunArgs != nil && currentRunArgs.runInArguments {
+		fmt.Println("skipping cleanup because -run was used")
+		return fmt.Errorf("skipping cleanup because -run was used")
+	}
+
+	if !ran {
+		return fmt.Errorf("must run a test before cleaning up")
+	}
+
 	shouldCleanup := currentRunArgs != nil && currentRunArgs.shouldCleanup
 	if !must && (currentRunArgs == nil || !shouldCleanup) {
 		return nil
@@ -305,12 +334,16 @@ func cleanup(config *Config, must bool) error {
 		if !fc.header.considerForCleanup() {
 			continue
 		}
-		if registeredName[entry.Name()] {
+		fName := entry.Name()
+		ext := path.Ext(entry.Name())
+		if ext != fName && len(ext) > 0 {
+			fName = strings.TrimSuffix(fName, ext)
+		}
+		if registeredName[fName] {
 			continue
 		}
 		deletable = append(deletable, p)
 		if must && !shouldCleanup {
-
 			cleanName, err := url.PathUnescape(entry.Name())
 			if err != nil {
 				cleanName = entry.Name()

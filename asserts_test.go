@@ -106,6 +106,7 @@ func Test_cleanup(t *testing.T) {
 		deletables   []string
 		conservables []string
 		osSpareAbles []string
+		runArgument  bool
 		args         args
 		wantErr      bool
 	}{
@@ -120,22 +121,39 @@ func Test_cleanup(t *testing.T) {
 			}},
 			wantErr: false,
 		},
+		{
+			name: "cleanup_snapshot_folder_run_argument",
+			args: args{config: &Config{
+				Grouping:    "",
+				SnapShotDir: t.TempDir(),
+				Replacers:   nil,
+			}},
+			runArgument: true,
+			wantErr:     true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			currentRunArgs = &Args{shouldUpdate: true, shouldCleanup: true}
+			currentRunArgs = &Args{shouldUpdate: true, shouldCleanup: true, runInArguments: tt.runArgument}
 			for _, dc := range append(tt.deletables, tt.conservables...) {
-				fd, err := os.OpenFile(filepath.Join(tt.args.config.SnapShotDir, dc),
-					os.O_CREATE|os.O_TRUNC, snapshotFilePerm)
+				_, err := os.Stat(tt.args.config.SnapShotDir)
 				if err != nil {
 					t.Fatal(err)
 				}
-				fd.WriteString(`{
+				fd, err := os.OpenFile(filepath.Join(tt.args.config.SnapShotDir, dc),
+					os.O_CREATE|os.O_TRUNC|os.O_WRONLY, snapshotFilePerm)
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = fd.WriteString(`{
   "os": "windows",
   "limit_to_os": false
 }
 
 Hello World`)
+				if err != nil {
+					t.Fatal(err)
+				}
 				fd.Close()
 			}
 			for _, dc := range tt.osSpareAbles {
@@ -156,6 +174,7 @@ Hello World`, deletableOS))
 			for _, c := range tt.conservables {
 				registeredName[c] = true
 			}
+			ran = true
 			if err := cleanup(tt.args.config, false); (err != nil) != tt.wantErr {
 				t.Errorf("cleanup() error = %v, wantErr %v", err, tt.wantErr)
 			}
