@@ -67,6 +67,9 @@ was in order but not requested.
 
 #### The configuration
 
+It is expected to be in json format (as seen in the example below) in a file called `expectations.json`.
+Configuration will be looked for in the directory where the test file lives (we actually look up in the stack from the
+call to ReadConfig within our code until we find a `_test.go` file and then look for a `expectations.json` file in the same)
 A sample configuration:
 
 ```json
@@ -86,6 +89,16 @@ A sample configuration:
 ```
 
 Notice that this is all optional.
+
+##### JSON
+
+For the `json` parsing we use [`github.com/tidwall/sjson`](https://github.com/tidwall/sjson), a few notes that might
+not be so clear from their documentation:
+* Paths can be specified to json elements:
+  * In `{"name":{"first":"Janet","last":"Prichard"},"age":47}` you can reference `name.janet`
+  * For arrays, you can use the number `{"name":{"first":"Janet","last":"Prichard"},"age":47,"children":["Sara","Alex","Jack"]}` and reference `children.1`
+  * You can indicate "all children" using `#`, for the above example `children.#`.
+  * If the root of the `json` file is an array, you can use `#` leading `#.a_key` for example will affect the `a_key` key of all children in the array.
 
 #### The code
 
