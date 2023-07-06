@@ -34,12 +34,17 @@ const configFileName = "expectations.json"
 
 // ReadConfig will try to read a config file from cwd and return that or a sane default.
 func ReadConfig() (*Config, error) {
-	_, fileCalling, _, ok := runtime.Caller(1)
-	// if we could not find a file calling OR the file is oddly empty OR the file is just the file name.
-	if !ok || fileCalling == "" || !strings.ContainsRune(fileCalling, os.PathSeparator) {
-		return readConfig(os.Getwd)
+	for i := 2; i < 5; i++ {
+		_, fileCalling, _, ok := runtime.Caller(1)
+		if ok && strings.HasSuffix(fileCalling, "_test.go") {
+			return readConfig(func() (string, error) { return path.Dir(fileCalling), nil })
+		}
+		// if we could not find a file calling OR the file is oddly empty OR the file is just the file name.
+		if !ok || fileCalling == "" || !strings.ContainsRune(fileCalling, os.PathSeparator) {
+			return readConfig(os.Getwd)
+		}
 	}
-	return readConfig(func() (string, error) { return path.Dir(fileCalling), nil })
+	return readConfig(os.Getwd)
 }
 
 func readConfig(getcwd func() (string, error)) (*Config, error) {
