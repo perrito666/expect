@@ -261,7 +261,7 @@ func fromSnapshot(name string, comparable snapshots.Comparable, limitOS bool, co
 	fc, err := readFileContents(snapshotFilePath)
 	if err != nil {
 		return &ErrTestErrored{
-			err: fmt.Errorf("loading expectatations file: %w", err),
+			err: fmt.Errorf("loading expectations file: %w", err),
 		}
 	}
 	expectation := comparable.Load(fc.body)
