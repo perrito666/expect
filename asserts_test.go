@@ -82,7 +82,7 @@ func Test_fromSnapshot(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := fromSnapshot(tt.args.name, tt.args.comparable, tt.args.limitOS, tt.args.config); (err != nil) != tt.wantErr {
-				t.Errorf("fromSnapshot() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("fromSnapshot(%s) error = %v, wantErr %v", tt.args.name, err, tt.wantErr)
 			}
 		})
 	}

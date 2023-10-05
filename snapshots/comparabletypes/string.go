@@ -42,6 +42,10 @@ func (s *PrettyStringComparable) CompareTo(c snapshots.Comparable) (string, erro
 
 func (s *StringComparable) compareTo(c snapshots.Comparable, pretty bool) (string, error) {
 	otherStr := c.String()
+	// let's save some time, also i think Diffmatchpatch returns a DiffEqual token if all is equal
+	if s.string == otherStr {
+		return "", nil
+	}
 	dmp := diffmatchpatch.New()
 	diffs := dmp.DiffMain(s.string, otherStr, false)
 
@@ -55,7 +59,7 @@ func (s *StringComparable) compareTo(c snapshots.Comparable, pretty bool) (strin
 				hasLastNewLine := diff.Text[len(diff.Text)-1] == '\n'
 				lines := strings.Split(diff.Text, "\n")
 				l := len(lines)
-				lower, upper := s.contextSize, l - s.contextSize
+				lower, upper := s.contextSize, l-s.contextSize
 				// if there's no newline at the end, we need to take one more line, since the last one will
 				// immediately be followed by an edit, so it doesn't really count as context
 				if !hasLastNewLine {
