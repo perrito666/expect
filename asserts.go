@@ -9,7 +9,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strings"
 	"sync"
@@ -122,6 +121,16 @@ func (f *fileContents) dump(fileName string) error {
 
 func readFileContents(fileName string) (*fileContents, error) {
 	fc := &fileContents{}
+	if _, err := os.Stat(fileName); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			fc.header = &fileHeader{
+				OS:        runtime.GOOS,
+				LimitToOS: false,
+			}
+			return fc, nil
+		}
+		return nil, err
+	}
 	if err := fc.load(fileName); err != nil {
 		return nil, err
 	}
@@ -132,6 +141,13 @@ func (f *fileContents) load(fileName string) error {
 	fContent, err := os.ReadFile(fileName)
 	if err != nil {
 		return fmt.Errorf("reading file for loading: %w", err)
+	}
+	if len(fContent) == 0 {
+		f.header = &fileHeader{
+			OS:        runtime.GOOS,
+			LimitToOS: false,
+		}
+		return nil
 	}
 	sep := bytes.Index(fContent, headerSep)
 	if sep == -1 {
@@ -236,34 +252,15 @@ func fromSnapshot(name string, comparable snapshots.Comparable, limitOS bool, co
 		snapshotFilePath = fmt.Sprintf("%s.%s", snapshotFilePath, ext)
 	}
 
-	if currentRunArgs != nil && currentRunArgs.shouldUpdate {
-		fc := fileContents{
-			header: &fileHeader{OS: runtime.GOOS, LimitToOS: limitOS},
-			body:   comparable.Dump(),
-		}
+	updatingSnapshot := currentRunArgs != nil && currentRunArgs.shouldUpdate
 
-		fc1, err := readFileContents(snapshotFilePath)
-		if err == nil {
-			// This is not super accurate but in most cases will prevent to re-write the file just for the OS
-			if reflect.DeepEqual(fc1.body, fc.body) {
-				fmt.Println("snapshot is the same, not updating")
-				return nil
-			}
-		}
-
-		if err := fc.dump(snapshotFilePath); err != nil {
-			panic(err)
-		}
-
-		// we just updated the snapshot, makes no sense to compare
-		return nil
-	}
 	fc, err := readFileContents(snapshotFilePath)
 	if err != nil {
 		return &ErrTestErrored{
 			err: fmt.Errorf("loading expectations file: %w", err),
 		}
 	}
+
 	expectation := comparable.Load(fc.body)
 	// time to replace, comparable will know how to.
 	if replaceable, ok := config.Replacers[expectation.Kind()]; ok {
@@ -272,11 +269,31 @@ func fromSnapshot(name string, comparable snapshots.Comparable, limitOS bool, co
 	}
 	diff, err := expectation.CompareTo(comparable)
 	if err != nil {
+		// we are updating, don't care
+		if updatingSnapshot {
+			fcNew := fileContents{
+				header: &fileHeader{OS: runtime.GOOS, LimitToOS: limitOS},
+				body:   comparable.Dump(),
+			}
+			if err := fcNew.dump(snapshotFilePath); err != nil {
+				panic(err)
+			}
+		}
 		return &ErrTestErrored{
 			err: fmt.Errorf("comparing expectation to result: %w", err),
 		}
 	}
 	if diff != "" {
+		// we are updating, we only do so if there are differences
+		if updatingSnapshot {
+			fcNew := fileContents{
+				header: &fileHeader{OS: runtime.GOOS, LimitToOS: limitOS},
+				body:   comparable.Dump(),
+			}
+			if err := fcNew.dump(snapshotFilePath); err != nil {
+				panic(err)
+			}
+		}
 		return &ErrTestFailed{failure: diff}
 	}
 	return nil
