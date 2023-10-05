@@ -278,6 +278,7 @@ func fromSnapshot(name string, comparable snapshots.Comparable, limitOS bool, co
 			if err := fcNew.dump(snapshotFilePath); err != nil {
 				panic(err)
 			}
+			return nil
 		}
 		return &ErrTestErrored{
 			err: fmt.Errorf("comparing expectation to result: %w", err),
@@ -293,6 +294,7 @@ func fromSnapshot(name string, comparable snapshots.Comparable, limitOS bool, co
 			if err := fcNew.dump(snapshotFilePath); err != nil {
 				panic(err)
 			}
+			return nil
 		}
 		return &ErrTestFailed{failure: diff}
 	}
