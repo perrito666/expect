@@ -65,6 +65,9 @@ func NewResponse(r *http.Response, pretty bool) (*Response, error) {
 
 func (r *Response) contentType() string {
 	if ct, ok := r.headers["content-type"]; ok {
+		if strings.Index(ct[0], ";") != -1 { // handle "application/json; charset=utf-8"
+			return strings.Split(ct[0], ";")[0]
+		}
 		return ct[0]
 	}
 	return ""
@@ -167,6 +170,18 @@ func (r *Response) Dump() []byte {
 	m, err := json.MarshalIndent(&dumpable, "", "  ")
 	if err != nil {
 		panic(err)
+	}
+
+	// do an attempt at making this easier to read, in case the json in body is compressed and only if
+	// we were asked to make it pretty
+	if r.contentType() == "application/json" && r.pretty {
+		tempBody := map[string]interface{}{}
+		if err = json.Unmarshal(r.body, tempBody); err != nil {
+			return append(m, append([]byte(headerSep), r.body...)...)
+		}
+		if marshaledBody, err := json.MarshalIndent(tempBody, "", "  "); err == nil {
+			return append(m, append([]byte(headerSep), marshaledBody...)...)
+		}
 	}
 	return append(m, append([]byte(headerSep), r.body...)...)
 }
