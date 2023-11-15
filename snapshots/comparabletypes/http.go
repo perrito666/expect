@@ -174,6 +174,9 @@ func (r *Response) Dump() []byte {
 const headerSep = "\n\n"
 
 func (r *Response) Load(req []byte) snapshots.Comparable {
+	if len(req) == 0 {
+		return &Response{}
+	}
 	splitLine := strings.Index(string(req), headerSep)
 	if splitLine == -1 {
 		panic(fmt.Errorf("cannot read a request in this file"))
