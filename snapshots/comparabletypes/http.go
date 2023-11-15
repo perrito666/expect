@@ -16,13 +16,14 @@ var _ snapshots.Comparable = (*Response)(nil)
 
 // Response holds comparable information of a http response.
 type Response struct {
-	pretty     bool
-	handlers   map[string]func(string) snapshots.Comparable
-	body       []byte
-	headers    map[string][]string
-	replacers  map[string]string
-	headerKeys []string
-	status     int
+	pretty           bool
+	handlers         map[string]func(string) snapshots.Comparable
+	body             []byte
+	headers          map[string][]string
+	replacers        map[string]string
+	subtypeReplacers map[snapshots.Kind]map[string]string
+	headerKeys       []string
+	status           int
 }
 
 type dumpResponse struct {
@@ -61,6 +62,23 @@ func NewResponse(r *http.Response, pretty bool) (*Response, error) {
 		sort.Strings(rq.headers[k])
 	}
 	return &rq, nil
+}
+
+func (r *Response) Subtypes() bool {
+	return true
+}
+
+func (r *Response) ReplaceSubtypes(replacers map[snapshots.Kind]map[string]string) {
+	r.subtypeReplacers = replacers
+}
+
+func (r *Response) replacerFor(k snapshots.Kind) map[string]string {
+	if r.subtypeReplacers == nil {
+		if replacers, ok := r.subtypeReplacers[k]; ok {
+			return replacers
+		}
+	}
+	return map[string]string{}
 }
 
 func (r *Response) contentType() string {
@@ -131,6 +149,9 @@ func (r *Response) compareToOtherResponse(cr *Response) (string, error) {
 
 	rb := handler(string(r.body))
 	crb := handler(string(cr.body))
+	replacer := r.replacerFor(rb.Kind())
+	rb.Replace(replacer)
+	crb.Replace(replacer)
 	bdiff, err := rb.CompareTo(crb)
 	if err != nil {
 		return "", fmt.Errorf("comparing bodies")

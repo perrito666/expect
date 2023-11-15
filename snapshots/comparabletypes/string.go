@@ -33,6 +33,14 @@ func NewPrettyStringComparable(s string) snapshots.Comparable {
 	return &PrettyStringComparable{sc}
 }
 
+func (s *StringComparable) Subtypes() bool {
+	return false
+}
+
+func (s *StringComparable) ReplaceSubtypes(_ map[snapshots.Kind]map[string]string) {
+	return
+}
+
 func (s *StringComparable) CompareTo(c snapshots.Comparable) (string, error) {
 	return s.compareTo(c, false)
 }

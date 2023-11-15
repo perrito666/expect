@@ -26,6 +26,14 @@ func NewJSONFromByes(b []byte) snapshots.Comparable {
 	return &j
 }
 
+func (j *JSON) Subtypes() bool {
+	return false
+}
+
+func (j *JSON) ReplaceSubtypes(_ map[snapshots.Kind]map[string]string) {
+	return
+}
+
 func (j *JSON) CompareTo(c snapshots.Comparable) (string, error) {
 	opts := jsondiff.DefaultConsoleOptions()
 

@@ -16,6 +16,8 @@ type Comparable interface {
 	Load([]byte) Comparable
 	Replace(map[string]string)
 	Extension() string
+	Subtypes() bool
+	ReplaceSubtypes(map[Kind]map[string]string)
 }
 
 // CantCompare constructs a valid ErrCannotCompare
