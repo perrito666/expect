@@ -287,6 +287,14 @@ func fromSnapshot(name string, comparable snapshots.Comparable, limitOS bool, co
 		expectation.Replace(replaceable)
 		comparable.Replace(replaceable)
 	}
+	// if this is a composed type lets pass the replacers to the subtypes
+	if expectation.Subtypes() {
+		expectation.ReplaceSubtypes(config.Replacers)
+	}
+	if comparable.Subtypes() {
+		comparable.ReplaceSubtypes(config.Replacers)
+	}
+
 	diff, err := expectation.CompareTo(comparable)
 	if err != nil {
 		// we are updating, don't care
