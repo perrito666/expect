@@ -73,7 +73,7 @@ func (r *Response) ReplaceSubtypes(replacers map[snapshots.Kind]map[string]strin
 }
 
 func (r *Response) replacerFor(k snapshots.Kind) map[string]string {
-	if r.subtypeReplacers == nil {
+	if r.subtypeReplacers != nil {
 		if replacers, ok := r.subtypeReplacers[k]; ok {
 			return replacers
 		}
