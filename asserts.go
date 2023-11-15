@@ -166,11 +166,24 @@ func FromSnapshot(t *testing.T, name string, comparable snapshots.Comparable) {
 	doCompareAndEvaluateResult(t, name, comparable, false)
 }
 
+// FromSnapshotWithConfig will fail if the stored information is not equal (in a non-agnostic comparison) to the passed
+// comparabletypes, the config will be overriden/updated with the passed one.
+func FromSnapshotWithConfig(t *testing.T, name string, comparable snapshots.Comparable, config *Config) {
+	doCompareAndEvaluateResultWithConfig(t, name, comparable, false, config)
+}
+
 // FromOSDependentSnapshot will fail if the stored information is not equal (in a non-agnostic comparison) to the passed
 // comparabletypes but only if the OS of both matches, this should prevent weird side effect of snapshotting in different
 // machines.
 func FromOSDependentSnapshot(t *testing.T, name string, comparable snapshots.Comparable) {
 	doCompareAndEvaluateResult(t, name, comparable, true)
+}
+
+// FromOSDependentSnapshotWithConfig will fail if the stored information is not equal (in a non-agnostic comparison) to the passed
+// comparabletypes but only if the OS of both matches, this should prevent weird side effect of snapshotting in different
+// machines, the config will be overriden/updated with the passed one
+func FromOSDependentSnapshotWithConfig(t *testing.T, name string, comparable snapshots.Comparable, config *Config) {
+	doCompareAndEvaluateResultWithConfig(t, name, comparable, true, config)
 }
 
 // doCompareAndEvaluateResult does the actual snapshot running and decides if and how to fail according to results.
@@ -179,6 +192,13 @@ func doCompareAndEvaluateResult(t *testing.T, name string, comparable snapshots.
 	if err != nil {
 		t.Fatal(err)
 	}
+	doCompareAndEvaluateResultWithConfig(t, name, comparable, limitOs, config)
+}
+
+// doCompareAndEvaluateResult does the actual snapshot running and decides if and how to fail according to results.
+func doCompareAndEvaluateResultWithConfig(t *testing.T, name string, comparable snapshots.Comparable, limitOs bool,
+	config *Config) {
+
 	if err := fromSnapshot(name, comparable, limitOs, config); err != nil {
 		if errors.Is(err, &ErrTestErrored{}) {
 			t.Fatal(errors.Unwrap(err))

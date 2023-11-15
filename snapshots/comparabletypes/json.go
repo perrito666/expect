@@ -21,6 +21,11 @@ func NewJSONFromString(s string) snapshots.Comparable {
 	return &j
 }
 
+func NewJSONFromByes(b []byte) snapshots.Comparable {
+	j := JSON{rawJSON: b}
+	return &j
+}
+
 func (j *JSON) CompareTo(c snapshots.Comparable) (string, error) {
 	opts := jsondiff.DefaultConsoleOptions()
 
