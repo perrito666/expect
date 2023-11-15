@@ -84,7 +84,7 @@ func (r *Response) replacerFor(k snapshots.Kind) map[string]string {
 func (r *Response) contentType() string {
 	if ct, ok := r.headers["content-type"]; ok {
 		if strings.Index(ct[0], ";") != -1 { // handle "application/json; charset=utf-8"
-			return strings.Split(ct[0], ";")[0]
+			return strings.TrimSpace(strings.Split(ct[0], ";")[0])
 		}
 		return ct[0]
 	}
@@ -197,7 +197,7 @@ func (r *Response) Dump() []byte {
 	// we were asked to make it pretty
 	if r.contentType() == "application/json" && r.pretty {
 		tempBody := map[string]interface{}{}
-		if err = json.Unmarshal(r.body, tempBody); err != nil {
+		if err = json.Unmarshal(r.body, &tempBody); err != nil {
 			return append(m, append([]byte(headerSep), r.body...)...)
 		}
 		if marshaledBody, err := json.MarshalIndent(tempBody, "", "  "); err == nil {
