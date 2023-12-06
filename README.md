@@ -117,8 +117,8 @@ import (
 func TestSomething(t *testing.T) {
   var result string
   // ... Do something
-  c := comparabletypes.StringComparable(result)
-  expect.FromSnapshot(t, "a name for our snapshot", &c)
+  c := comparabletypes.NewStringComparable(result)
+  expect.FromSnapshot(t, "a name for our snapshot", c)
 }
 ```
 
