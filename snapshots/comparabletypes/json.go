@@ -21,7 +21,7 @@ func NewJSONFromString(s string) snapshots.Comparable {
 	return &j
 }
 
-func NewJSONFromByes(b []byte) snapshots.Comparable {
+func NewJSONFromBytes(b []byte) snapshots.Comparable {
 	j := JSON{rawJSON: b}
 	return &j
 }
