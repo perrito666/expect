@@ -119,15 +119,13 @@ func (f *fileContents) dump(fileName string) error {
 		snapshotFilePerm)
 }
 
+var ErrNotSnapshotted = errors.New("not snapshotted")
+
 func readFileContents(fileName string) (*fileContents, error) {
 	fc := &fileContents{}
 	if _, err := os.Stat(fileName); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			fc.header = &fileHeader{
-				OS:        runtime.GOOS,
-				LimitToOS: false,
-			}
-			return fc, nil
+			return nil, ErrNotSnapshotted
 		}
 		return nil, err
 	}
@@ -200,6 +198,10 @@ func doCompareAndEvaluateResultWithConfig(t *testing.T, name string, comparable 
 	config *Config) {
 
 	if err := fromSnapshot(name, comparable, limitOs, config); err != nil {
+		if errors.Is(err, ErrNotSnapshotted) {
+			t.Fatal(fmt.Errorf("expected snapshot for %s to exist: %w", name, err))
+			return
+		}
 		if errors.Is(err, &ErrTestErrored{}) {
 			t.Fatal(errors.Unwrap(err))
 			return
