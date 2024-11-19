@@ -14,7 +14,7 @@ Expect is intended to allow comparing large volumes of output in tests against a
 intended for expectations of functions producing actual structs but large corpuses of either text, markup languages or
 other protocol dumps that are not otherwise easy to compare.
 
-A simple mechanism is provided to maintain up to date the snapshots is provided.
+A simple mechanism is provided to maintain the snapshots up to date.
 
 ### Out of the box
 
@@ -60,13 +60,14 @@ func TestMain(m *testing.M) {
 }
 ```
 
-if the `-cleanup` flag was passed then that invocation will remove all not used snapshots, otherwise it will do nothing.
+if the `-cleanup` flag was passed then that invocation will remove all unreferenced snapshots, otherwise it will do nothing.
 
 You can alternatively use `expect.MustCleanup()` which will return an error (which you will need to handle) if a cleanup
 was in order but not requested.
 
 #### The configuration
 
+##### In general
 It is expected to be in json format (as seen in the example below) in a file called `expectations.json`.
 Configuration will be looked for in the directory where the test file lives (we actually look up in the stack from the
 call to ReadConfig within our code until we find a `_test.go` file and then look for a `expectations.json` file in the same)
@@ -88,7 +89,17 @@ A sample configuration:
 }
 ```
 
+##### Per assertion
+
+Additionally, you can use `FromSnapshotWithConfig` to pass a configuration for a single assertion, this will override the
+global configuration. It is mostly useful for very particularly formatted snapshots. This function takes the configuration
+as a Go struct, you can maintain it in a json file and load it with the available tools for the `Config` type
+
+```go
+
 Notice that this is all optional.
+
+
 
 ##### JSON
 
