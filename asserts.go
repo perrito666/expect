@@ -278,6 +278,16 @@ func fromSnapshot(name string, comparable snapshots.Comparable, limitOS bool, co
 
 	fc, err := readFileContents(snapshotFilePath)
 	if err != nil {
+		if updatingSnapshot && errors.Is(err, ErrNotSnapshotted) {
+			fcNew := fileContents{
+				header: &fileHeader{OS: runtime.GOOS, LimitToOS: limitOS},
+				body:   comparable.Dump(),
+			}
+			if err := fcNew.dump(snapshotFilePath); err != nil {
+				panic(err)
+			}
+			return nil
+		}
 		return &ErrTestErrored{
 			err: fmt.Errorf("loading expectations file: %w", err),
 		}
